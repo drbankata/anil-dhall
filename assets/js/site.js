@@ -156,7 +156,16 @@
   $$(".vband").forEach(function (band) {
     var v = $("video", band), b = $(".vplay", band);
     if (!v) return;
-    if (reduced()) { v.removeAttribute("autoplay"); v.pause(); }
+    /* load the video only when the band nears the screen (keeps it out of the first paint) */
+    function start() {
+      if (v.getAttribute("data-poster")) { v.poster = v.getAttribute("data-poster"); v.removeAttribute("data-poster"); }
+      $$("source[data-src]", v).forEach(function (s) { s.src = s.getAttribute("data-src"); s.removeAttribute("data-src"); });
+      v.load(); if (!reduced()) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    }
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { io.disconnect(); start(); } }, { rootMargin: "300px 0px" });
+      io.observe(band);
+    } else { start(); }
     var PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg><span class="sr-only">Pause background video</span>';
     var PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span class="sr-only">Play background video</span>';
     function sync() { if (b) b.innerHTML = v.paused ? PLAY : PAUSE; }
